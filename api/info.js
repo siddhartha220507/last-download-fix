@@ -12,19 +12,28 @@ export default async function handler(req, res) {
 
   const id = getVideoId(url)
 
-  try {
-    const response = await fetch(
-      `https://pipedapi.kavin.rocks/api/v1/streams/${id}`
-    )
+  const APIs = [
+    'https://pipedapi.kavin.rocks',
+    'https://piped.video',
+    'https://pipedapi.invidious.io',
+  ]
 
-    if (!response.ok) {
-      return res.status(500).json({ error: 'API failed' })
+  for (let api of APIs) {
+    try {
+      const response = await fetch(`${api}/api/v1/streams/${id}`)
+
+      if (!response.ok) continue
+
+      const data = await response.json()
+
+      if (data?.videoStreams) {
+        console.log(`✅ Success with API: ${api}`)
+        return res.status(200).json(data)
+      }
+    } catch (e) {
+      console.log(`❌ API failed: ${api}`)
     }
-
-    const data = await response.json()
-
-    return res.status(200).json(data)
-  } catch (e) {
-    return res.status(500).json({ error: 'Server error' })
   }
+
+  return res.status(500).json({ error: 'All APIs failed' })
 }
